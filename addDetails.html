@@ -1,0 +1,17 @@
+<div th:fragment="addressDetail(index)">
+    <div class="card mb-2 address-item" th:id="'address-' + ${index}">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Address #<span th:text="${index + 1}"></span></span>
+            <button type="button" class="btn btn-sm btn-primary toggle-collapse" th:data-target="'#details-' + ${index}">
+                <i class="icon" th:class="'icon-' + (${index == 0 ? 'minus' : 'plus'})"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-danger remove-address" th:data-index="${index}">
+                <i class="icon icon-trash"></i>
+            </button>
+        </div>
+        <div th:id="'details-' + ${index}" class="card-body collapse" th:classappend="${index == 0 ? 'show' : ''}">
+            <label th:for="'line1-' + ${index}">Address Line 1:</label>
+            <input type="text" th:id="'line1-' + ${index}" th:field="*{addresses[__${index}__].line1}" class="form-control mb-2" placeholder="Enter Address Line 1" />
+        </div>
+    </div>
+</div>
