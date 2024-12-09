@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Main Template</title>
+    <!-- Include Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>User Address Form</h1>
+
+        <form th:object="${user}" method="post">
+            <!-- Address List -->
+            <div id="address-list">
+                <div th:each="address, index : ${user.addresses}">
+                    <!-- Include Address Fragment -->
+                    <div th:replace="fragments/addressDetails :: addressDetail(${index})"></div>
+                </div>
+            </div>
+
+            <!-- Add Address Button -->
+            <button type="button" id="add-address" class="btn btn-success btn-sm mt-3">
+                <i class="icon icon-plus"></i> Add Address
+            </button>
+
+            <button type="submit" class="btn btn-primary mt-3">Submit</button>
+        </form>
+    </div>
+
+    <!-- Include jQuery and Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            let index = [[${#lists.size(user.addresses)}]];
+
+            // On page load, collapse all except the first address
+            $('#address-list .address-item .card-body').each(function (i) {
+                if (i === 0) {
+                    $(this).addClass('show'); // Keep the first address expanded
+                } else {
+                    $(this).removeClass('show'); // Collapse all others
+                }
+            });
+
+            // Add new address
+            $('#add-address').click(function () {
+                const newAddress = `
+                    <div class="card mb-2 address-item" id="address-${index}">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Address #${index + 1}</span>
+                            <button type="button" class="btn btn-sm btn-primary toggle-collapse" data-target="#details-${index}">
+                                <i class="icon icon-plus"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger remove-address" data-index="${index}">
+                                <i class="icon icon-trash"></i>
+                            </button>
+                        </div>
+                        <div id="details-${index}" class="card-body collapse">
+                            <label for="line1-${index}">Address Line 1:</label>
+                            <input type="text" id="line1-${index}" name="addresses[${index}].line1" class="form-control mb-2" placeholder="Enter Address Line 1" />
+                        </div>
+                    </div>`;
+                $('#address-list').append(newAddress);
+                index++;
+            });
+
+            // Remove address
+            $(document).on('click', '.remove-address', function () {
+                $(this).closest('.address-item').remove();
+            });
+
+            // Toggle collapse/expand
+            $(document).on('click', '.toggle-collapse', function () {
+                const target = $(this).data('target');
+                $(target).collapse('toggle');
+            });
+
+            // Switch icons based on collapse state
+            $(document).on('shown.bs.collapse', '.card-body', function () {
+                $(this).siblings('.card-header').find('.icon').removeClass('icon-plus').addClass('icon-minus');
+            });
+
+            $(document).on('hidden.bs.collapse', '.card-body', function () {
+                $(this).siblings('.card-header').find('.icon').removeClass('icon-minus').addClass('icon-plus');
+            });
+        });
+    </script>
+</body>
+</html>
