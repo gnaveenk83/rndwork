@@ -93,3 +93,14 @@ function openModalForRemoval(itemId) {
   // Show the modal
   $('#myModal').modal('show');
 }
+
+function updateItemNumbers() {
+      $("input[type='text'][id^='item']").each(function(index) {
+        // Find the closest parent .item div
+        const $itemDiv = $(this).closest('.item');
+        
+        // Update the .item-number label within this .item div
+        $itemDiv.find(".item-number").text(`${index + 1}.`);
+      });
+    }
+
