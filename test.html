@@ -1,0 +1,62 @@
+$(document).ready(function () {
+    // Add new row
+    $("#addRow").click(function () {
+        let lastRow = $("#dynamic-container .dynamic-row:last");
+        let newRow = lastRow.clone(); // Clone the last row
+
+        // Clear input values in the cloned row
+        newRow.find("input, select, textarea").val("");
+
+        // Append the new row
+        $("#dynamic-container").append(newRow);
+
+        // Reindex all rows
+        reindexFields();
+    });
+
+    // Remove a row
+    $(document).on("click", ".removeRow", function () {
+        $(this).closest(".dynamic-row").remove(); // Remove the row
+        reindexFields(); // Reindex after removal
+    });
+
+    // Function to reindex all rows, fields, and IDs
+    function reindexFields() {
+        $("#dynamic-container .dynamic-row").each(function (index) {
+            // Update row div IDs
+            $(this).attr("id", "row-" + index);
+
+            $(this).find("input, select, textarea").each(function () {
+                let name = $(this).attr("name");
+                if (name) {
+                    $(this).attr("name", name.replace(/\[\d+\]/, `[${index}]`)); // Update name index
+                }
+
+                let id = $(this).attr("id");
+                if (id) {
+                    $(this).attr("id", id.replace(/\d+$/, index)); // Update ID index
+                }
+            });
+        });
+    }
+});
+
+
+
+
+<form th:action="@{/submit}" method="post">
+    <div id="dynamic-container">
+        <div class="dynamic-row" th:id="|row-${iterStat.index}|" th:each="item, iterStat : ${items}">
+            <label th:for="|items_${iterStat.index}_name|">Name</label>
+            <input type="text" th:name="|items[${iterStat.index}].name|" th:id="|items_${iterStat.index}_name|" th:value="${item.name}" />
+
+            <label th:for="|items_${iterStat.index}_email|">Email</label>
+            <input type="text" th:name="|items[${iterStat.index}].email|" th:id="|items_${iterStat.index}_email|" th:value="${item.email}" />
+
+            <button type="button" class="removeRow">Remove</button>
+        </div>
+    </div>
+
+    <button type="button" id="addRow">Add Row</button>
+    <button type="submit">Submit</button>
+</form>
