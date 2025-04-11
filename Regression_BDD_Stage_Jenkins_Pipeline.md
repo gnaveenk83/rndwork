@@ -15,7 +15,8 @@ The **Regression (BDD)** stage in our Jenkins pipeline ensures that both UI and 
 | **Rest-Assured / HttpClient** | Used internally for API tests |
 | **Jenkins** | CI/CD orchestrator                   |
 | **JUnit/TestNG** | Test execution framework (if applicable) |
-| **Allure / Extent Reports** | Optional test reporting |
+| **Serenity BDD** | Test runner and configuration manager |
+| **Extent Reports** | Enhanced HTML reporting for tests |
 
 ---
 
@@ -96,11 +97,59 @@ Feature: User login
 
 ---
 
-## 📊 Reporting
+## 🔧 Configuration: `serenity.conf`
 
-- **HTML, Allure, or Extent Reports** can be generated post-test.
-- Results are archived in Jenkins for each build.
-- Failed steps are linked to screenshots (for UI tests).
+We use a centralized `serenity.conf` file to manage environment-specific settings, driver configurations, timeouts, and parallel execution behavior.
+
+### Example:
+
+```hocon
+webdriver {
+  driver = chrome
+  timeout = 5000
+  base.url = "https://your-test-env.com"
+}
+
+serenity {
+  take.screenshots = FOR_FAILURES
+  restart.browser.for.each = scenario
+  environment = "staging"
+}
+```
+
+> Tip: You can define multiple environments using `serenity.properties` or `-Denvironment` flag.
+
+---
+
+## 📊 Extent Reports Integration
+
+We use **Extent Reports** alongside Serenity's default reports to provide rich visual feedback.
+
+### Features:
+- Step-by-step tracking
+- Embedded screenshots
+- Tag-based filtering
+- Parallel test support
+
+### Report Path:
+```
+target/serenity/extent-report/index.html
+```
+
+### Configuration Example:
+
+```properties
+extent.reporter.spark.start=true
+extent.reporter.spark.out=target/serenity/extent-report/index.html
+```
+
+---
+
+## 📎 Jenkins Report Integration
+
+- Post-build action archives: `target/serenity/extent-report/`
+- Optional HTML publisher plugin integration
+- Both Serenity and Extent reports accessible in Jenkins UI
 
 ---
 
