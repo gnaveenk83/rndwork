@@ -29,3 +29,28 @@ curl http://localhost:8000/completion -d '{
   "prompt": "Write a Python function to sort a list",
   "n_predict": 256
 }'
+
+----------------------------------
+OR
+----------------------------------
+docker-compose.yml
+
+version: "3.9"
+services:
+  llm-agent:
+    image: ghcr.io/jmorganca/ollama:latest
+    container_name: code-llm
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+    entrypoint: >
+      bash -c "
+      ollama serve & 
+      sleep 2 && 
+      ollama run codellama
+      "
+
+volumes:
+  ollama-data:
