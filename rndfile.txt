@@ -1,0 +1,31 @@
+docker-compose.yml
+
+version: "3.8"
+services:
+  llm-agent:
+    image: ghcr.io/ggerganov/llama.cpp:latest
+    container_name: code-llm
+    command: [ "./server", "-m", "/models/codellama-7b.Q4_K_M.gguf", "-c", "4096", "-n", "-1", "--port", "8000" ]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/models
+    restart: unless-stopped
+
+docker-compose.yml folder structure
+
+.
+├── docker-compose.yml
+└── models/
+    └── codellama-7b.Q4_K_M.gguf  # (~4-5GB quantized model)
+
+How to Use
+	1.	Download a quantized coding model (CodeLlama, Mistral, etc.)
+Example site: huggingface.co/TheBloke
+	2.	Start the container
+docker-compose up -d
+
+curl http://localhost:8000/completion -d '{
+  "prompt": "Write a Python function to sort a list",
+  "n_predict": 256
+}'
