@@ -54,3 +54,45 @@ services:
 
 volumes:
   ollama-data:
+
+
+
+
+
+-- 1. Insert new user
+INSERT INTO users (
+  login,
+  name,
+  email,
+  crypted_password,
+  salt,
+  active,
+  created_at,
+  updated_at
+)
+VALUES (
+  'tempadmin',  -- login username
+  'Temp Admin', -- full display name
+  'tempadmin@example.com', -- email (can be dummy)
+  '5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8', -- SHA1('admin')
+  '', -- no salt
+  1, -- active = true
+  CAST((SYSDATE - TO_DATE('1970-01-01','YYYY-MM-DD')) * 86400 * 1000 AS NUMBER), -- created_at
+  CAST((SYSDATE - TO_DATE('1970-01-01','YYYY-MM-DD')) * 86400 * 1000 AS NUMBER)  -- updated_at
+);
+
+-- 2. Commit the user insert
+COMMIT;
+
+-- 3. Insert the user into 'sonar-administrators' group
+INSERT INTO group_members (
+  group_id,
+  user_id
+)
+SELECT g.id, u.id
+FROM groups g
+JOIN users u ON u.login = 'tempadmin'
+WHERE g.name = 'sonar-administrators';
+
+-- 4. Commit group membership
+COMMIT;
