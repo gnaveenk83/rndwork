@@ -59,7 +59,7 @@ volumes:
 
 
 
--- 1. Insert the new user
+-- Create user
 INSERT INTO users (
   uuid,
   login,
@@ -72,7 +72,7 @@ INSERT INTO users (
   updated_at
 )
 VALUES (
-  SYS_GUID(),
+  '9de0f9ab-3280-46a5-88aa-0c125b5e519c',
   'tempadmin',
   'Temp Admin',
   'tempadmin@example.com',
@@ -85,14 +85,16 @@ VALUES (
 
 COMMIT;
 
--- 2. Assign admin role
+-- Assign Global Admin role
 INSERT INTO user_roles (
   user_uuid,
   role,
   resource_id
 )
-SELECT uuid, 'admin', NULL
-FROM users
-WHERE login = 'tempadmin';
+VALUES (
+  '9de0f9ab-3280-46a5-88aa-0c125b5e519c',
+  'admin',
+  NULL
+);
 
 COMMIT;
