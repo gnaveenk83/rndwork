@@ -136,3 +136,9 @@ class MyS3IntegrationTest {
 }
 
 export _JAVA_OPTIONS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:-UsePerfData"
+
+
+docker run -d --name sonarqube \
+  -e _JAVA_OPTIONS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:-UsePerfData" \
+  -p 9000:9000 \
+  sonarqube:10.1-community
