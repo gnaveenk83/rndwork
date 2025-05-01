@@ -134,3 +134,5 @@ class MyS3IntegrationTest {
         // Your SpringBoot app will now talk to S3Mock instead of real AWS S3
     }
 }
+
+export _JAVA_OPTIONS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:-UsePerfData"
