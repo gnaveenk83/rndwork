@@ -1,0 +1,95 @@
+package com.etech.rules.processor.util;
+
+import org.w3c.dom.*;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.ByteArrayInputStream;
+import java.io.StringWriter;
+
+public class XmlUtil {
+
+    private static final ThreadLocal<DocumentBuilder> threadLocalBuilder = ThreadLocal.withInitial(() -> {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            return factory.newDocumentBuilder();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initialize DocumentBuilder", e);
+        }
+    });
+
+    public static Document parse(String xml) {
+        try {
+            return threadLocalBuilder.get().parse(new ByteArrayInputStream(xml.getBytes()));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse XML", e);
+        }
+    }
+
+    public static String extract(Node root, String path) {
+        Node node = root;
+        for (String name : path.split("/")) {
+            if (node == null) return null;
+            node = findChild(node, name);
+        }
+        return (node != null) ? node.getTextContent().trim() : null;
+    }
+
+    private static Node findChild(Node node, String name) {
+        NodeList children = node.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node c = children.item(i);
+            if (c.getNodeType() == Node.ELEMENT_NODE && c.getLocalName().equals(name)) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    // 🔧 Add or update an attribute on a node
+    public static void setAttribute(Element element, String name, String value) {
+        if (element != null && name != null) {
+            element.setAttribute(name, value);
+        }
+    }
+
+    // ➕ Add a child element with text content
+    public static Element addChildElement(Node parent, String name, String textContent) {
+        Document doc = parent instanceof Document ? (Document) parent : parent.getOwnerDocument();
+        Element child = doc.createElement(name);
+        if (textContent != null) {
+            child.setTextContent(textContent);
+        }
+        parent.appendChild(child);
+        return child;
+    }
+
+    // ➕ Add a child element with namespace
+    public static Element addChildElementNS(Node parent, String namespace, String name, String textContent) {
+        Document doc = parent instanceof Document ? (Document) parent : parent.getOwnerDocument();
+        Element child = doc.createElementNS(namespace, name);
+        if (textContent != null) {
+            child.setTextContent(textContent);
+        }
+        parent.appendChild(child);
+        return child;
+    }
+
+    // 🔄 Convert a Node (e.g., Element or Document) back to String
+    public static String toString(Node node) {
+        try {
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(node), new StreamResult(writer));
+            return writer.toString();
+        } catch (TransformerException e) {
+            throw new RuntimeException("Failed to transform node to string", e);
+        }
+    }
+}
