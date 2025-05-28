@@ -93,3 +93,213 @@ public class XmlUtil {
         }
     }
 }
+
+
+// ScenarioContext.java
+package com.etech.rules.processor.util;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class ScenarioContext {
+    private final Map<String, Object> context = new HashMap<>();
+
+    public void put(String key, Object value) {
+        context.put(key, value);
+    }
+
+    public <T> T get(String key, Class<T> clazz) {
+        return clazz.cast(context.get(key));
+    }
+
+    public void clear() {
+        context.clear();
+    }
+}
+
+// SoapWebServiceClient.java
+package com.etech.rules.processor.util;
+
+import javax.xml.soap.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+
+public class SoapWebServiceClient {
+
+    public static String sendSoapRequest(String endpointUrl, String xmlPayload) {
+        try {
+            SOAPConnection connection = SOAPConnectionFactory.newInstance().createConnection();
+            SOAPMessage message = MessageFactory.newInstance().createMessage(null,
+                new ByteArrayInputStream(xmlPayload.getBytes(StandardCharsets.UTF_8)));
+
+            SOAPMessage response = connection.call(message, endpointUrl);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            response.writeTo(out);
+            connection.close();
+            return out.toString(StandardCharsets.UTF_8.name());
+        } catch (Exception e) {
+            throw new RuntimeException("SOAP request failed", e);
+        }
+    }
+}
+
+// XmlUtil.java
+package com.etech.rules.processor.util;
+
+import org.w3c.dom.*;
+import javax.xml.parsers.*;
+import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+
+public class XmlUtil {
+
+    private static final ThreadLocal<DocumentBuilder> builderThread = ThreadLocal.withInitial(() -> {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            return factory.newDocumentBuilder();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    });
+
+    public static Document parse(String xml) {
+        try {
+            return builderThread.get().parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse XML", e);
+        }
+    }
+
+    public static String loadXmlFromClasspath(String path) {
+        try (InputStream is = Thread.currentThread().getContextClassLoader()
+                .getResourceAsStream(path)) {
+            if (is == null) throw new IllegalArgumentException("File not found: " + path);
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to read XML file: " + path, e);
+        }
+    }
+
+    public static String extract(Node root, String path) {
+        Node node = root;
+        for (String name : path.split("/")) {
+            if (node == null) return null;
+            node = findChild(node, name);
+        }
+        return node != null ? node.getTextContent().trim() : null;
+    }
+
+    public static String toString(Document doc) {
+        try {
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+            StringWriter writer = new StringWriter();
+            transformer.transform(new DOMSource(doc), new StreamResult(writer));
+            return writer.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert Document to String", e);
+        }
+    }
+
+    public static Node findOrCreateNode(Document doc, String path) {
+        String[] parts = path.split("/");
+        Node current = doc.getDocumentElement();
+        for (String part : parts) {
+            Node next = null;
+            NodeList children = current.getChildNodes();
+            for (int i = 0; i < children.getLength(); i++) {
+                Node child = children.item(i);
+                if (child.getNodeType() == Node.ELEMENT_NODE && (child.getLocalName().equals(part) || child.getNodeName().equals(part))) {
+                    next = child;
+                    break;
+                }
+            }
+            if (next == null) {
+                next = doc.createElement(part);
+                current.appendChild(next);
+            }
+            current = next;
+        }
+        return current;
+    }
+}
+
+// PurchaseOrderSteps.java
+package com.etech.rules.processor.steps;
+
+import com.etech.rules.processor.util.SoapWebServiceClient;
+import com.etech.rules.processor.util.XmlUtil;
+import com.etech.rules.processor.util.ScenarioContext;
+import io.cucumber.java.en.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+
+public class PurchaseOrderSteps {
+
+    private final ScenarioContext scenarioContext = new ScenarioContext();
+
+    @Given("a purchase order request loaded from {string}")
+    public void loadXmlRequestByFileName(String fileName) {
+        String resourcePath = "xml/" + fileName;
+        String xml = XmlUtil.loadXmlFromClasspath(resourcePath);
+        scenarioContext.put("requestXml", xml);
+    }
+
+    @And("the purchase order request has OrderID set to {string}")
+    public void modifyOrderId(String newOrderId) {
+        String xml = scenarioContext.get("requestXml", String.class);
+        Document doc = XmlUtil.parse(xml);
+        Node orderIdNode = XmlUtil.findOrCreateNode(doc, "Body/GetPurchaseOrderRequest/OrderID");
+        orderIdNode.setTextContent(newOrderId);
+        scenarioContext.put("requestXml", XmlUtil.toString(doc));
+    }
+
+    @When("the client sends the purchase order to {string}")
+    public void sendPurchaseOrder(String endpoint) {
+        String requestXml = scenarioContext.get("requestXml", String.class);
+        String responseXml = SoapWebServiceClient.sendSoapRequest(endpoint, requestXml);
+        scenarioContext.put("responseXml", responseXml);
+    }
+
+    @Then("the SOAP response should contain OrderID {string}")
+    public void assertOrderIdInResponse(String expectedOrderId) {
+        String responseXml = scenarioContext.get("responseXml", String.class);
+        Document doc = XmlUtil.parse(responseXml);
+        String actualOrderId = XmlUtil.extract(doc.getDocumentElement(), "Body/OrderID");
+
+        if (!expectedOrderId.equals(actualOrderId)) {
+            throw new AssertionError("Expected OrderID: " + expectedOrderId + ", but got: " + actualOrderId);
+        }
+    }
+
+    @Then("the SOAP response should contain element {string} with value {string}")
+    public void assertResponseElementValue(String path, String expectedValue) {
+        String responseXml = scenarioContext.get("responseXml", String.class);
+        Document doc = XmlUtil.parse(responseXml);
+        String actualValue = XmlUtil.extract(doc.getDocumentElement(), path);
+        if (!expectedValue.equals(actualValue)) {
+            throw new AssertionError("Expected: " + expectedValue + ", but was: " + actualValue);
+        }
+    }
+}
+
+
+Feature: Purchase Order Processing
+
+  Scenario: Submit a basic purchase order and receive a response
+    Given a purchase order request loaded from "purchase-order-request.xml"
+    When the client sends the purchase order to "http://localhost:8080/services/orders"
+    Then the SOAP response should contain OrderID "PO-12345"
+    And the SOAP response should contain element "Body/Status" with value "ACCEPTED"
+
+  Scenario: Submit and validate a modified purchase order
+    Given a purchase order request loaded from "purchase-order-request.xml"
+    And the purchase order request has OrderID set to "PO-99999"
+    When the client sends the purchase order to "http://localhost:8080/services/orders"
+    Then the SOAP response should contain OrderID "PO-99999"
+    And the SOAP response should contain element "Body/Status" with value "ACCEPTED"
