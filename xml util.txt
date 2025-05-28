@@ -92,6 +92,15 @@ public class XmlUtil {
             throw new RuntimeException("Failed to transform node to string", e);
         }
     }
+
+public static Node extractNode(Node root, String path) {
+    Node node = root;
+    for (String name : path.split("/")) {
+        if (node == null) return null;
+        node = findChild(node, name);
+    }
+    return node;
+}
 }
 
 
