@@ -101,6 +101,52 @@ public static Node extractNode(Node root, String path) {
     }
     return node;
 }
+
+public static int countChildElements(Node parent, String childName) {
+    int count = 0;
+    NodeList children = parent.getChildNodes();
+    for (int i = 0; i < children.getLength(); i++) {
+        Node c = children.item(i);
+        if (c.getNodeType() == Node.ELEMENT_NODE && (c.getLocalName().equals(childName) || c.getNodeName().equals(childName))) {
+            count++;
+        }
+    }
+    return count;
+}
+
+public static List<Node> extractChildElements(Node root, String parentPath, String childName) {
+    Node parent = extractNode(root, parentPath);
+    if (parent == null) return List.of();
+
+    List<Node> result = new ArrayList<>();
+    NodeList children = parent.getChildNodes();
+
+    for (int i = 0; i < children.getLength(); i++) {
+        Node c = children.item(i);
+        if (c.getNodeType() == Node.ELEMENT_NODE &&
+            (c.getLocalName().equals(childName) || c.getNodeName().equals(childName))) {
+            result.add(c);
+        }
+    }
+    return result;
+}
+
+public static boolean hasChildElements(Node node) {
+    if (node == null) return false;
+    NodeList children = node.getChildNodes();
+    for (int i = 0; i < children.getLength(); i++) {
+        Node c = children.item(i);
+        if (c.getNodeType() == Node.ELEMENT_NODE) {
+            return true;
+        }
+    }
+    return false;
+}
+
+public static boolean hasElementsAtPath(Node root, String path) {
+    Node node = extractNode(root, path);
+    return hasChildElements(node);
+}
 }
 
 
