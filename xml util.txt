@@ -344,6 +344,109 @@ public class PurchaseOrderSteps {
 }
 
 
+
+public static Element addElementWithNamespaceAndChildren(
+        Document doc,
+        Node parent,
+        String namespaceUri,
+        String qualifiedTagName, // e.g., "po:DeliveryDetails"
+        Map<String, String> elementAttributes,
+        List<ChildElement> children // each with name, text, and optional attributes
+) {
+    Element element = doc.createElementNS(namespaceUri, qualifiedTagName);
+
+    // Add attributes to the parent element
+    if (elementAttributes != null) {
+        for (Map.Entry<String, String> attr : elementAttributes.entrySet()) {
+            element.setAttribute(attr.getKey(), attr.getValue());
+        }
+    }
+
+    // Add child elements with namespace and their own attributes
+    for (ChildElement child : children) {
+        Element childElement = doc.createElementNS(namespaceUri, child.qualifiedName);
+        childElement.setTextContent(child.text);
+        if (child.attributes != null) {
+            for (Map.Entry<String, String> attr : child.attributes.entrySet()) {
+                childElement.setAttribute(attr.getKey(), attr.getValue());
+            }
+        }
+        element.appendChild(childElement);
+    }
+
+    parent.appendChild(element);
+    return element;
+}
+
+
+
+@When("^I add a \"([^\"]+)\" element under \"([^\"]+)\" with namespace \"([^\"]+)\"(?: and attributes)?$")
+public void addElementWithNamespace(String tag, String parentPath, String namespace, DataTable dataTable) {
+    Document doc = XmlUtil.parse(scenarioContext.get("requestXml", String.class));
+    Node parent = XmlUtil.extractNode(doc.getDocumentElement(), parentPath);
+
+    Map<String, String> attributes = (dataTable != null) ? dataTable.asMap() : Collections.emptyMap();
+
+    scenarioContext.put("namespace", namespace);
+    scenarioContext.put("elementName", tag);
+    scenarioContext.put("parentNode", parent);
+    scenarioContext.put("doc", doc);
+    scenarioContext.put("elementAttrs", attributes);
+}
+
+@And("it has child elements")
+public void itHasChildElements(DataTable table) {
+    Document doc = (Document) scenarioContext.get("doc");
+    Node parent = (Node) scenarioContext.get("parentNode");
+    String namespace = (String) scenarioContext.get("namespace");
+    String elementName = (String) scenarioContext.get("elementName");
+    Map<String, String> elementAttrs = (Map<String, String>) scenarioContext.get("elementAttrs");
+
+    List<Map<String, String>> rows = table.asMaps();
+    List<XmlUtil.ChildElement> children = new ArrayList<>();
+
+    for (Map<String, String> row : rows) {
+        String name = row.get("name");
+        String text = row.get("text");
+
+        Map<String, String> childAttrs = new HashMap<>();
+        for (Map.Entry<String, String> entry : row.entrySet()) {
+            if (!entry.getKey().equals("name") && !entry.getKey().equals("text")
+                    && entry.getValue() != null && !entry.getValue().isBlank()) {
+                childAttrs.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        children.add(new XmlUtil.ChildElement(name, text, childAttrs.isEmpty() ? null : childAttrs));
+    }
+
+    XmlUtil.addElementWithNamespaceAndChildren(doc, parent, namespace, elementName,
+            elementAttrs.isEmpty() ? null : elementAttrs, children);
+
+    scenarioContext.put("requestXml", XmlUtil.toString(doc));
+}
+
+public static class ChildElement {
+    public String qualifiedName;
+    public String text;
+    public Map<String, String> attributes;
+
+    public ChildElement(String qualifiedName, String text, Map<String, String> attributes) {
+        this.qualifiedName = qualifiedName;
+        this.text = text;
+        this.attributes = attributes;
+    }
+}
+
+
+When I add a "po:DeliveryDetails" element under "Envelope/Body/PurchaseOrder" with namespace "http://example.com/po" and attributes
+  | key          | value    |
+  | deliveryMode | express  |
+And it has child elements
+  | name        | text           | type     | postcode |
+  | po:Address  | 123 Main St    | billing  |          |
+  | po:City     | Milton Keynes  |          | MK9      |
+
 Feature: Purchase Order Processing
 
   Scenario: Submit a basic purchase order and receive a response
