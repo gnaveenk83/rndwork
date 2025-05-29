@@ -156,3 +156,29 @@ public static Document addElementFromDataTableOptionalNamespace(
 
     return doc;
 }
+
+
+
+
+
+ public static Node getNodeByXPath(Document doc, String xpathExpression) {
+        try {
+            return (Node) xPath.evaluate(xpathExpression, doc, XPathConstants.NODE);
+        } catch (XPathExpressionException e) {
+            throw new RuntimeException("Invalid XPath: " + xpathExpression, e);
+        }
+    }
+
+    // Optional: also get NodeList
+    public static Node[] getNodesByXPath(Document doc, String xpathExpression) {
+        try {
+            var nodeList = (org.w3c.dom.NodeList) xPath.evaluate(xpathExpression, doc, XPathConstants.NODESET);
+            Node[] result = new Node[nodeList.getLength()];
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                result[i] = nodeList.item(i);
+            }
+            return result;
+        } catch (XPathExpressionException e) {
+            throw new RuntimeException("Invalid XPath: " + xpathExpression, e);
+        }
+    }
