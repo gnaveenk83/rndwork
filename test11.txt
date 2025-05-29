@@ -1,0 +1,48 @@
+public static Document addElementFromDataTable(
+        Document doc,
+        Node parent,
+        String namespace,
+        String elementName,
+        Map<String, String> elementAttrs,
+        DataTable table
+) {
+    List<Map<String, String>> rows = table.asMaps();
+    List<ChildElement> children = new ArrayList<>();
+
+    for (Map<String, String> row : rows) {
+        String name = row.get("name");
+        String text = row.get("text");
+
+        Map<String, String> childAttrs = new HashMap<>();
+        for (Map.Entry<String, String> entry : row.entrySet()) {
+            if (!entry.getKey().equals("name") && !entry.getKey().equals("text")
+                    && entry.getValue() != null && !entry.getValue().isBlank()) {
+                childAttrs.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        children.add(new ChildElement(name, text, childAttrs.isEmpty() ? null : childAttrs));
+    }
+
+    XmlUtil.addElementWithNamespaceAndChildren(
+            doc, parent, namespace, elementName,
+            (elementAttrs == null || elementAttrs.isEmpty()) ? null : elementAttrs,
+            children
+    );
+
+    return doc;
+}
+
+@And("it has child elements")
+public void itHasChildElements(DataTable table) {
+    Document doc = XmlUtil.addElementFromDataTable(
+        (Document) scenarioContext.get("doc"),
+        (Node) scenarioContext.get("parentNode"),
+        (String) scenarioContext.get("namespace"),
+        (String) scenarioContext.get("elementName"),
+        (Map<String, String>) scenarioContext.get("elementAttrs"),
+        table
+    );
+
+    scenarioContext.put("requestXml", XmlUtil.toString(doc)); // only here!
+}
