@@ -34,45 +34,49 @@ public static Document addElementFromDataTable(
 }
 
 
-public static Element addElementWithNamespaceAndChildren(
+public static Element addElementWithOptionalNamespaceAndChildren(
         Document doc,
         Node parent,
-        String namespaceUri,
         String qualifiedTagName, // e.g., "po:DeliveryDetails"
         Map<String, String> elementAttributes,
         List<ChildElement> children // each with name, text, and optional attributes
 ) {
-    // Determine namespace prefix if present
-    String prefix = qualifiedTagName.contains(":")
-            ? qualifiedTagName.split(":")[0]
-            : null;
+    String prefix = qualifiedTagName.contains(":") ? qualifiedTagName.split(":")[0] : null;
+    String namespaceUri = null;
 
-    // Create the new element with namespace
-    Element element = doc.createElementNS(namespaceUri, qualifiedTagName);
+    // Try to find existing xmlns:prefix in parent chain
+    if (prefix != null) {
+        namespaceUri = findNamespaceUri(parent, prefix);
+    }
 
-    // Auto-declare xmlns:prefix on the new element if not already declared
-    if (prefix != null && !element.hasAttribute("xmlns:" + prefix)) {
+    Element element = namespaceUri != null
+            ? doc.createElementNS(namespaceUri, qualifiedTagName)
+            : doc.createElement(qualifiedTagName);
+
+    // Auto-declare xmlns:prefix on this element if not already present
+    if (prefix != null && namespaceUri != null && !element.hasAttribute("xmlns:" + prefix)) {
         element.setAttribute("xmlns:" + prefix, namespaceUri);
     }
 
-    // Add attributes to the new element
+    // Add attributes
     if (elementAttributes != null) {
         for (Map.Entry<String, String> attr : elementAttributes.entrySet()) {
             element.setAttribute(attr.getKey(), attr.getValue());
         }
     }
 
-    // Add child elements if any
+    // Add children
     if (children != null) {
         for (ChildElement child : children) {
             String childQualifiedName = child.qualifiedName;
-
-            // Add prefix to child tag if not provided and parent has one
             if (prefix != null && !childQualifiedName.contains(":")) {
                 childQualifiedName = prefix + ":" + childQualifiedName;
             }
 
-            Element childElement = doc.createElementNS(namespaceUri, childQualifiedName);
+            Element childElement = namespaceUri != null
+                    ? doc.createElementNS(namespaceUri, childQualifiedName)
+                    : doc.createElement(childQualifiedName);
+
             childElement.setTextContent(child.text);
 
             if (child.attributes != null) {
@@ -85,10 +89,23 @@ public static Element addElementWithNamespaceAndChildren(
         }
     }
 
-    // Append the new element to the parent node
     parent.appendChild(element);
     return element;
 }
+
+
+private static String findNamespaceUri(Node node, String prefix) {
+    while (node != null && node.getNodeType() == Node.ELEMENT_NODE) {
+        Element el = (Element) node;
+        String attrName = "xmlns:" + prefix;
+        if (el.hasAttribute(attrName)) {
+            return el.getAttribute(attrName);
+        }
+        node = node.getParentNode();
+    }
+    return null; // fallback
+}
+
 @And("it has child elements")
 public void itHasChildElements(DataTable table) {
     Document doc = XmlUtil.addElementFromDataTable(
