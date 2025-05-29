@@ -243,3 +243,30 @@ public class SimpleNamespaceContext implements NamespaceContext {
         return prefixMap.keySet().iterator();
     }
 }
+
+public static Node getSingleNodeByXPath(Document doc, String xpathExpr, Map<String, String> namespaces) {
+    List<Node> nodes = getNodeListByXPath(doc, xpathExpr, namespaces);
+    if (nodes.size() != 1) {
+        throw new IllegalStateException("Expected exactly one node but found: " + nodes.size());
+    }
+    return nodes.get(0);
+}
+
+public static List<Node> getNodeListByXPath(Document doc, String xpathExpr, Map<String, String> namespaces) {
+    try {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        if (namespaces != null && !namespaces.isEmpty()) {
+            xpath.setNamespaceContext(new SimpleNamespaceContext(namespaces));
+        }
+
+        NodeList nodes = (NodeList) xpath.evaluate(xpathExpr, doc, XPathConstants.NODESET);
+        List<Node> nodeList = new ArrayList<>();
+        for (int i = 0; i < nodes.getLength(); i++) {
+            nodeList.add(nodes.item(i));
+        }
+        return nodeList;
+
+    } catch (XPathExpressionException e) {
+        throw new RuntimeException("XPath evaluation failed: " + xpathExpr, e);
+    }
+}
