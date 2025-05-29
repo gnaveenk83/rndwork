@@ -215,3 +215,31 @@ public class SimpleNamespaceContext implements NamespaceContext {
         return prefixMap.keySet().iterator();
     }
 }
+
+public class SimpleNamespaceContext implements NamespaceContext {
+
+    private final Map<String, String> prefixMap;
+
+    public SimpleNamespaceContext(Map<String, String> prefixMap) {
+        this.prefixMap = prefixMap;
+    }
+
+    @Override
+    public String getNamespaceURI(String prefix) {
+        return prefixMap.getOrDefault(prefix, XMLConstants.NULL_NS_URI);
+    }
+
+    @Override
+    public String getPrefix(String namespaceURI) {
+        return prefixMap.entrySet().stream()
+            .filter(e -> e.getValue().equals(namespaceURI))
+            .map(Map.Entry::getKey)
+            .findFirst()
+            .orElse(null);
+    }
+
+    @Override
+    public Iterator<String> getPrefixes(String namespaceURI) {
+        return prefixMap.keySet().iterator();
+    }
+}
