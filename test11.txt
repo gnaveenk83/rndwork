@@ -119,3 +119,40 @@ public void itHasChildElements(DataTable table) {
 
     scenarioContext.put("requestXml", XmlUtil.toString(doc)); // only here!
 }
+
+
+public static Document addElementFromDataTableOptionalNamespace(
+        Document doc,
+        Node parent,
+        String qualifiedElementName,
+        Map<String, String> elementAttrs,
+        DataTable table
+) {
+    List<Map<String, String>> rows = table.asMaps();
+    List<ChildElement> children = new ArrayList<>();
+
+    for (Map<String, String> row : rows) {
+        String name = row.get("name");
+        String text = row.get("text");
+
+        Map<String, String> childAttrs = new HashMap<>();
+        for (Map.Entry<String, String> entry : row.entrySet()) {
+            if (!entry.getKey().equals("name") && !entry.getKey().equals("text")
+                    && entry.getValue() != null && !entry.getValue().isBlank()) {
+                childAttrs.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        children.add(new ChildElement(name, text, childAttrs.isEmpty() ? null : childAttrs));
+    }
+
+    XmlUtil.addElementWithOptionalNamespaceAndChildren(
+            doc,
+            parent,
+            qualifiedElementName,
+            (elementAttrs == null || elementAttrs.isEmpty()) ? null : elementAttrs,
+            children
+    );
+
+    return doc;
+}
