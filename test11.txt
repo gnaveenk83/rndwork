@@ -33,6 +33,62 @@ public static Document addElementFromDataTable(
     return doc;
 }
 
+
+public static Element addElementWithNamespaceAndChildren(
+        Document doc,
+        Node parent,
+        String namespaceUri,
+        String qualifiedTagName, // e.g., "po:DeliveryDetails"
+        Map<String, String> elementAttributes,
+        List<ChildElement> children // each with name, text, and optional attributes
+) {
+    // Determine namespace prefix if present
+    String prefix = qualifiedTagName.contains(":")
+            ? qualifiedTagName.split(":")[0]
+            : null;
+
+    // Create the new element with namespace
+    Element element = doc.createElementNS(namespaceUri, qualifiedTagName);
+
+    // Auto-declare xmlns:prefix on the new element if not already declared
+    if (prefix != null && !element.hasAttribute("xmlns:" + prefix)) {
+        element.setAttribute("xmlns:" + prefix, namespaceUri);
+    }
+
+    // Add attributes to the new element
+    if (elementAttributes != null) {
+        for (Map.Entry<String, String> attr : elementAttributes.entrySet()) {
+            element.setAttribute(attr.getKey(), attr.getValue());
+        }
+    }
+
+    // Add child elements if any
+    if (children != null) {
+        for (ChildElement child : children) {
+            String childQualifiedName = child.qualifiedName;
+
+            // Add prefix to child tag if not provided and parent has one
+            if (prefix != null && !childQualifiedName.contains(":")) {
+                childQualifiedName = prefix + ":" + childQualifiedName;
+            }
+
+            Element childElement = doc.createElementNS(namespaceUri, childQualifiedName);
+            childElement.setTextContent(child.text);
+
+            if (child.attributes != null) {
+                for (Map.Entry<String, String> attr : child.attributes.entrySet()) {
+                    childElement.setAttribute(attr.getKey(), attr.getValue());
+                }
+            }
+
+            element.appendChild(childElement);
+        }
+    }
+
+    // Append the new element to the parent node
+    parent.appendChild(element);
+    return element;
+}
 @And("it has child elements")
 public void itHasChildElements(DataTable table) {
     Document doc = XmlUtil.addElementFromDataTable(
