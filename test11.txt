@@ -252,6 +252,26 @@ public static Node getSingleNodeByXPath(Document doc, String xpathExpr, Map<Stri
     return nodes.get(0);
 }
 
+
+public static List<Element> getChildNodesByXPath(Document doc, String parentXPath, String childLocalName, Map<String, String> namespaces) throws XPathExpressionException {
+    XPath xpath = XPathFactory.newInstance().newXPath();
+    xpath.setNamespaceContext(new SimpleNamespaceContext(namespaces));
+
+    Node parent = (Node) xpath.evaluate(parentXPath, doc, XPathConstants.NODE);
+    if (parent == null) return List.of();
+
+    List<Element> results = new ArrayList<>();
+    NodeList children = parent.getChildNodes();
+    for (int i = 0; i < children.getLength(); i++) {
+        Node node = children.item(i);
+        if (node.getNodeType() == Node.ELEMENT_NODE &&
+            (childLocalName == null || node.getLocalName().equals(childLocalName))) {
+            results.add((Element) node);
+        }
+    }
+    return results;
+}
+
 public static List<Node> getNodeListByXPath(Document doc, String xpathExpr, Map<String, String> namespaces) {
     try {
         XPath xpath = XPathFactory.newInstance().newXPath();
