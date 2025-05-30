@@ -135,3 +135,51 @@ public class XmlUtil {
     <po:City postcode="MK9">Milton Keynes</po:City>
     <po:Type>home</po:Type>
 </po:DeliveryDetails>
+
+
+
+@And("it has child elements")
+public void it_has_child_elements(DataTable table) {
+    Document doc = context.get("doc", Document.class);
+    Element parent = context.get("currentElement", Element.class); // previously inserted
+
+    List<Map<String, String>> rows = table.asMaps();
+    List<XmlUtil.ChildElement> children = new ArrayList<>();
+
+    for (Map<String, String> row : rows) {
+        String name = row.get("name");
+        String text = row.get("text");
+
+        Map<String, String> attrs = new HashMap<>();
+        for (Map.Entry<String, String> entry : row.entrySet()) {
+            if (!entry.getKey().equals("name") && !entry.getKey().equals("text")
+                && entry.getValue() != null && !entry.getValue().isBlank()) {
+                attrs.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        children.add(new XmlUtil.ChildElement(name, text, attrs.isEmpty() ? null : attrs));
+    }
+
+    XmlUtil.addChildrenInheritingNamespace(doc, parent, children);
+}
+
+
+public static void addChildrenInheritingNamespace(
+        Document doc,
+        Element parent,
+        List<ChildElement> children
+) {
+    String namespaceUri = parent.getNamespaceURI();
+
+    for (ChildElement child : children) {
+        Element childElement = doc.createElementNS(namespaceUri, parent.getPrefix() + ":" + child.qualifiedName);
+        childElement.setTextContent(child.text);
+        if (child.attributes != null) {
+            for (Map.Entry<String, String> attr : child.attributes.entrySet()) {
+                childElement.setAttribute(attr.getKey(), attr.getValue());
+            }
+        }
+        parent.appendChild(childElement);
+    }
+}
