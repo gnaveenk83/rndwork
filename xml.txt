@@ -31,3 +31,36 @@ public void theElementHasChildElements(DataTable table) {
 
     XmlUtil.addChildElements(doc, parent, namespaceUri, prefix, children);
 }
+
+
+public static void addChildElements(
+        Document doc,
+        Element parent,
+        String namespaceUri,
+        String prefix,
+        List<ChildElement> children
+) {
+    for (ChildElement child : children) {
+        String localName = child.qualifiedName.contains(":")
+                ? child.qualifiedName.split(":", 2)[1]
+                : child.qualifiedName;
+
+        String qualifiedName = (prefix != null && !prefix.isEmpty())
+                ? prefix + ":" + localName
+                : localName;
+
+        Element childElement = doc.createElementNS(namespaceUri, qualifiedName);
+
+        if (child.text != null) {
+            childElement.setTextContent(child.text);
+        }
+
+        if (child.attributes != null) {
+            for (Map.Entry<String, String> attr : child.attributes.entrySet()) {
+                childElement.setAttribute(attr.getKey(), attr.getValue());
+            }
+        }
+
+        parent.appendChild(childElement);
+    }
+}
