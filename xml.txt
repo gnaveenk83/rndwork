@@ -1,0 +1,137 @@
+package com.etech.rules.processor.util;
+
+import org.w3c.dom.*;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.*;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
+public class XmlUtil {
+
+    private static final ThreadLocal<DocumentBuilder> threadLocalBuilder = ThreadLocal.withInitial(() -> {
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(true);
+            return factory.newDocumentBuilder();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to initialize DocumentBuilder", e);
+        }
+    });
+
+    public static Document parse(String xml) {
+        try {
+            return threadLocalBuilder.get().parse(new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8)));
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse XML", e);
+        }
+    }
+
+    public static Node getNodeByXPath(Document doc, String xpathExpr, Map<String, String> namespaces) {
+        try {
+            XPath xpath = XPathFactory.newInstance().newXPath();
+            xpath.setNamespaceContext(new SimpleNamespaceContext(namespaces));
+            return (Node) xpath.evaluate(xpathExpr, doc, XPathConstants.NODE);
+        } catch (Exception e) {
+            throw new RuntimeException("XPath evaluation failed", e);
+        }
+    }
+
+    public static List<Element> getChildElements(Node parent) {
+        List<Element> elements = new ArrayList<>();
+        NodeList children = parent.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            Node node = children.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
+                elements.add((Element) node);
+            }
+        }
+        return elements;
+    }
+
+    public static Element createChildElement(Document doc, Element parent, String qualifiedTagName, String text, Map<String, String> attributes) {
+        String namespaceUri = parent.getNamespaceURI();
+        Element child = doc.createElementNS(namespaceUri, qualifiedTagName);
+        if (text != null) {
+            child.setTextContent(text);
+        }
+        if (attributes != null) {
+            for (Map.Entry<String, String> attr : attributes.entrySet()) {
+                child.setAttribute(attr.getKey(), attr.getValue());
+            }
+        }
+        return child;
+    }
+
+    public static void insertElementAfter(
+            Document doc,
+            Element parent,
+            String qualifiedTagName,
+            String text,
+            Map<String, String> attributes,
+            String afterLocalName
+    ) {
+        Element newChild = createChildElement(doc, parent, qualifiedTagName, text, attributes);
+
+        NodeList children = parent.getChildNodes();
+        Node refNode = null;
+
+        for (int i = 0; i < children.getLength(); i++) {
+            Node node = children.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE && node.getLocalName().equals(afterLocalName)) {
+                refNode = node.getNextSibling();
+                break;
+            }
+        }
+
+        if (refNode != null) {
+            parent.insertBefore(newChild, refNode);
+        } else {
+            parent.appendChild(newChild);
+        }
+    }
+
+    public static class SimpleNamespaceContext implements NamespaceContext {
+        private final Map<String, String> prefixToUri;
+
+        public SimpleNamespaceContext(Map<String, String> prefixToUri) {
+            this.prefixToUri = prefixToUri;
+        }
+
+        @Override
+        public String getNamespaceURI(String prefix) {
+            return prefixToUri.getOrDefault(prefix, XMLConstants.NULL_NS_URI);
+        }
+
+        @Override
+        public String getPrefix(String namespaceURI) {
+            for (Map.Entry<String, String> entry : prefixToUri.entrySet()) {
+                if (entry.getValue().equals(namespaceURI)) {
+                    return entry.getKey();
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Iterator<String> getPrefixes(String namespaceURI) {
+            return prefixToUri.keySet().iterator();
+        }
+    }
+}
+
+          XmlUtil.insertElementAfter(
+    doc,
+    deliveryDetailsElement,
+    "po:City",
+    "Milton Keynes",
+    Map.of("postcode", "MK9"),
+    "Address"  // ← afterLocalName
+);
+
+          <po:DeliveryDetails>
+    <po:Address>123 Main St</po:Address>
+    <po:City postcode="MK9">Milton Keynes</po:City>
+    <po:Type>home</po:Type>
+</po:DeliveryDetails>
