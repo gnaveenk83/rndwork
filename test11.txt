@@ -290,3 +290,32 @@ public static List<Node> getNodeListByXPath(Document doc, String xpathExpr, Map<
         throw new RuntimeException("XPath evaluation failed: " + xpathExpr, e);
     }
 }
+
+
+
+
+------------------
+
+public static List<Element> getChildElements(Node parent) {
+    List<Element> elements = new ArrayList<>();
+    NodeList children = parent.getChildNodes();
+    for (int i = 0; i < children.getLength(); i++) {
+        Node node = children.item(i);
+        if (node.getNodeType() == Node.ELEMENT_NODE) {
+            elements.add((Element) node);
+        }
+    }
+    return elements;
+}
+
+public static List<Element> getChildElements(Node parent, String localName) {
+    List<Element> elements = new ArrayList<>();
+    NodeList children = parent.getChildNodes();
+    for (int i = 0; i < children.getLength(); i++) {
+        Node node = children.item(i);
+        if (node.getNodeType() == Node.ELEMENT_NODE && node.getLocalName().equals(localName)) {
+            elements.add((Element) node);
+        }
+    }
+    return elements;
+}
