@@ -171,15 +171,22 @@ public static void addChildrenInheritingNamespace(
         List<ChildElement> children
 ) {
     String namespaceUri = parent.getNamespaceURI();
-
+    String prefix = parent.getPrefix();
+    
     for (ChildElement child : children) {
-        Element childElement = doc.createElementNS(namespaceUri, parent.getPrefix() + ":" + child.qualifiedName);
+        String qualifiedName = (prefix != null && !prefix.isEmpty())
+                ? prefix + ":" + child.qualifiedName
+                : child.qualifiedName;
+
+        Element childElement = doc.createElementNS(namespaceUri, qualifiedName);
         childElement.setTextContent(child.text);
+
         if (child.attributes != null) {
             for (Map.Entry<String, String> attr : child.attributes.entrySet()) {
                 childElement.setAttribute(attr.getKey(), attr.getValue());
             }
         }
+
         parent.appendChild(childElement);
     }
 }
