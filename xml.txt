@@ -163,7 +163,6 @@ public void it_has_child_elements(DataTable table) {
 
     XmlUtil.addChildrenInheritingNamespace(doc, parent, children);
 }
-
 public static void addChildrenInheritingNamespace(
         Document doc,
         Element parent,
