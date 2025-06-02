@@ -264,3 +264,20 @@ Feature: Modify Purchase Order XML using XPath
 
             XPathExpression expression = xpath.compile(xpathExpr);
             return (Node) expression.evaluate(doc, XPathConstants.NODE);
+
+
+public static void deleteByXPathIndex(Document doc, String xpathExpr, Map<String, String> namespaces) {
+    try {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        xpath.setNamespaceContext(new SimpleNamespaceContext(namespaces));
+
+        Node node = (Node) xpath.evaluate(xpathExpr, doc, XPathConstants.NODE);
+        if (node != null && node.getParentNode() != null) {
+            node.getParentNode().removeChild(node);
+        } else {
+            System.err.println("No node found for XPath: " + xpathExpr);
+        }
+    } catch (XPathExpressionException e) {
+        throw new RuntimeException("XPath deletion by index failed: " + xpathExpr, e);
+    }
+}
