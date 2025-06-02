@@ -106,4 +106,104 @@ public class XmlUtil {
             return prefixMap.keySet().iterator();
         }
     }
+
+
+    public class XPathSteps {
+
+    private final ScenarioContext context;
+
+    public XPathSteps(ScenarioContext context) {
+        this.context = context;
+    }
+
+    @When("I replace the text at XPath {string} with {string}")
+    public void replaceTextAtXPath(String xpath, String newText) {
+        Document doc = context.get("doc", Document.class);
+        Map<String, String> namespaces = context.get("namespaces", Map.class);
+        XmlUtil.replaceTextByXPath(doc, xpath, newText, namespaces);
+        context.put("doc", doc);
+    }
+
+    @When("I delete the element at XPath {string}")
+    public void deleteElementAtXPath(String xpath) {
+        Document doc = context.get("doc", Document.class);
+        Map<String, String> namespaces = context.get("namespaces", Map.class);
+        XmlUtil.deleteNodeByXPath(doc, xpath, namespaces);
+        context.put("doc", doc);
+    }
+
+    @When("I update the attribute {string} of XPath {string} to {string}")
+    public void updateAttributeAtXPath(String attrName, String xpath, String value) {
+        Document doc = context.get("doc", Document.class);
+        Map<String, String> namespaces = context.get("namespaces", Map.class);
+        Element element = (Element) XmlUtil.getNodeByXPath(doc, xpath, namespaces);
+        XmlUtil.setAttribute(element, attrName, value);
+        context.put("doc", doc);
+    }
+
+    @When("I delete the attribute {string} from XPath {string}")
+    public void deleteAttributeFromXPath(String attrName, String xpath) {
+        Document doc = context.get("doc", Document.class);
+        Map<String, String> namespaces = context.get("namespaces", Map.class);
+        Element element = (Element) XmlUtil.getNodeByXPath(doc, xpath, namespaces);
+        if (element != null) element.removeAttribute(attrName);
+        context.put("doc", doc);
+    }
+
+    @Then("the resulting request should contain XPath {string} with text {string}")
+    public void assertTextAtXPath(String xpath, String expectedText) {
+        Document doc = context.get("doc", Document.class);
+        Map<String, String> namespaces = context.get("namespaces", Map.class);
+        Node node = XmlUtil.getNodeByXPath(doc, xpath, namespaces);
+        Assertions.assertNotNull(node, "Expected node not found");
+        Assertions.assertEquals(expectedText, node.getTextContent().trim());
+    }
+
+    @Then("the resulting request should not contain XPath {string}")
+    public void assertNodeNotPresent(String xpath) {
+        Document doc = context.get("doc", Document.class);
+        Map<String, String> namespaces = context.get("namespaces", Map.class);
+        Node node = XmlUtil.getNodeByXPath(doc, xpath, namespaces);
+        Assertions.assertNull(node, "Node should not exist but was found");
+    }
+
+    @Then("the attribute {string} of XPath {string} should be {string}")
+    public void assertAttributeAtXPath(String attr, String xpath, String expected) {
+        Document doc = context.get("doc", Document.class);
+        Map<String, String> namespaces = context.get("namespaces", Map.class);
+        Element el = (Element) XmlUtil.getNodeByXPath(doc, xpath, namespaces);
+        Assertions.assertNotNull(el);
+        Assertions.assertEquals(expected, el.getAttribute(attr));
+    }
+
+    @Then("the attribute {string} of XPath {string} should not exist")
+    public void assertAttributeNotPresent(String attr, String xpath) {
+        Document doc = context.get("doc", Document.class);
+        Map<String, String> namespaces = context.get("namespaces", Map.class);
+        Element el = (Element) XmlUtil.getNodeByXPath(doc, xpath, namespaces);
+        Assertions.assertNotNull(el);
+        Assertions.assertFalse(el.hasAttribute(attr), "Attribute " + attr + " should not exist");
+    }
 }
+}
+
+Feature: Modify Purchase Order XML using XPath
+
+  Background:
+    Given a sample purchase order request is loaded
+
+  Scenario: Replace City text content using XPath
+    When I replace the text at XPath "//po:City" with "London"
+    Then the resulting request should contain XPath "//po:City" with text "London"
+
+  Scenario: Delete Address element using XPath
+    When I delete the element at XPath "//po:Address"
+    Then the resulting request should not contain XPath "//po:Address"
+
+  Scenario: Update postcode attribute of po:City using XPath
+    When I update the attribute "postcode" of XPath "//po:City" to "SW1A 1AA"
+    Then the attribute "postcode" of XPath "//po:City" should be "SW1A 1AA"
+
+  Scenario: Delete postcode attribute of po:City using XPath
+    When I delete the attribute "postcode" from XPath "//po:City"
+    Then the attribute "postcode" of XPath "//po:City" should not exist
