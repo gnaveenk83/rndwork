@@ -241,3 +241,26 @@ Feature: Modify Purchase Order XML using XPath
         throw new RuntimeException("XPath evaluation failed: " + xpathExpr, e);
     }
 }
+
+ // Add namespace support
+            xpath.setNamespaceContext(new NamespaceContext() {
+                public String getNamespaceURI(String prefix) {
+                    return namespaces.getOrDefault(prefix, XPathConstants.STRING.toString());
+                }
+
+                public String getPrefix(String namespaceURI) {
+                    for (Map.Entry<String, String> entry : namespaces.entrySet()) {
+                        if (entry.getValue().equals(namespaceURI)) {
+                            return entry.getKey();
+                        }
+                    }
+                    return null;
+                }
+
+                public Iterator<String> getPrefixes(String namespaceURI) {
+                    return namespaces.keySet().iterator();
+                }
+            });
+
+            XPathExpression expression = xpath.compile(xpathExpr);
+            return (Node) expression.evaluate(doc, XPathConstants.NODE);
