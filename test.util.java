@@ -207,3 +207,37 @@ Feature: Modify Purchase Order XML using XPath
   Scenario: Delete postcode attribute of po:City using XPath
     When I delete the attribute "postcode" from XPath "//po:City"
     Then the attribute "postcode" of XPath "//po:City" should not exist
+
+
+
+
+
+    public static Node getNodeByXPath(Document doc, String xpathExpr, Map<String, String> namespaces) {
+    try {
+        XPathFactory xpathFactory = XPathFactory.newInstance();
+        XPath xpath = xpathFactory.newXPath();
+        xpath.setNamespaceContext(new NamespaceContext() {
+            public String getNamespaceURI(String prefix) {
+                return namespaces.getOrDefault(prefix, XMLConstants.NULL_NS_URI);
+            }
+
+            public String getPrefix(String namespaceURI) {
+                return namespaces.entrySet().stream()
+                        .filter(e -> e.getValue().equals(namespaceURI))
+                        .map(Map.Entry::getKey)
+                        .findFirst()
+                        .orElse(null);
+            }
+
+            public Iterator<String> getPrefixes(String namespaceURI) {
+                return namespaces.keySet().iterator();
+            }
+        });
+
+        // NOTE: Wrap XPath in () to use global index
+        XPathExpression expr = xpath.compile(xpathExpr);
+        return (Node) expr.evaluate(doc, XPathConstants.NODE);
+    } catch (Exception e) {
+        throw new RuntimeException("XPath evaluation failed: " + xpathExpr, e);
+    }
+}
