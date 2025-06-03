@@ -13,3 +13,11 @@ def get_oracle_connection(
     dsn = f"oracle+oracledb://{username}:{password}@{host}:{port}/{service_name}"
     engine = create_engine(dsn)
     return engine.connect()
+
+
+from sqlalchemy import text
+
+with get_oracle_connection() as conn:
+    result = conn.execute(text("SELECT * FROM employees WHERE ROWNUM <= 5"))
+    for row in result:
+        print(dict(row))
