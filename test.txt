@@ -1,0 +1,15 @@
+from sqlalchemy import create_engine
+
+def get_oracle_connection(
+    username="scott",
+    password="tiger",
+    host="localhost",
+    port=1521,
+    service_name="orclpdb1.localdomain"
+):
+    """
+    Returns a SQLAlchemy connection object to Oracle DB (Thin mode, no Instant Client required).
+    """
+    dsn = f"oracle+oracledb://{username}:{password}@{host}:{port}/{service_name}"
+    engine = create_engine(dsn)
+    return engine.connect()
